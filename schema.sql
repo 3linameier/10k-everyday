@@ -75,3 +75,16 @@ drop policy if exists "anyone can read round_history"  on round_history;
 drop policy if exists "anyone can write round_history" on round_history;
 create policy "anyone can read round_history"  on round_history for select using (true);
 create policy "anyone can write round_history" on round_history for insert with check (true);
+
+-- ─── Table grants ─────────────────────────────────────────────────────────
+-- RLS policies above only control *which rows* a role can see or touch —
+-- the role also needs a baseline grant to touch the table at all. Supabase
+-- projects normally set this up automatically, but it doesn't hurt to be
+-- explicit here so a from-scratch rebuild never gets stuck on a silent
+-- "permission denied for table" error.
+grant usage on schema public to anon, authenticated;
+
+grant select, insert, update, delete on public.players       to anon, authenticated;
+grant select, insert, update, delete on public.logs          to anon, authenticated;
+grant select, insert, update, delete on public.round_state   to anon, authenticated;
+grant select, insert, update, delete on public.round_history to anon, authenticated;
