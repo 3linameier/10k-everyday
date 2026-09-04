@@ -1,0 +1,840 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>10k Everyday</title>
+<meta name="description" content="Jagatud sammustriik sinu ja su sõprade vahel — kui kellelgi jääb 10 000 sammu ühel päeval saamata, ootab teda jäätise ostmine." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 28'%3E%3Ccircle cx='12' cy='8' r='6.2' fill='%23D6436F'/%3E%3Cpath d='M6.4 10 L12 26.5 L17.6 10 Z' fill='%23E8935C'/%3E%3C/svg%3E" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Karla:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  /* ────────────────────────────────────────────────────────────────────
+     Tokens — light palette on bare :root, dark redefinitions below.
+     "Melted berry milk" ground, raspberry accent, pistachio for success,
+     apricot for the streak number. Not neon, not gamified — a scoreboard,
+     not an arcade.
+  ──────────────────────────────────────────────────────────────────── */
+  :root{
+    --bg:            #F6F1F5;
+    --surface:       #FFFFFF;
+    --surface-2:     #FBF6F9;
+    --ink:           #2B1F2A;
+    --ink-muted:     #8A7484;
+    --ink-faint:     #B7A6B2;
+    --border:        #EAE0E6;
+    --accent:        #D6436F;
+    --accent-strong: #B8305A;
+    --accent-wash:   #FBE9EF;
+    --positive:      #4E8E6F;
+    --positive-wash: #E4F1E9;
+    --warm:          #D97A3D;
+    --warm-wash:     #FBEADC;
+    --shadow:        0 1px 2px rgba(43,31,42,.04), 0 8px 24px -12px rgba(43,31,42,.16);
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 9px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:            #1B141F;
+      --surface:       #251C29;
+      --surface-2:     #2C2130;
+      --ink:           #F4EAF1;
+      --ink-muted:     #B7A2B3;
+      --ink-faint:     #7C6979;
+      --border:        #3B2C3D;
+      --accent:        #FF7699;
+      --accent-strong: #FF95B0;
+      --accent-wash:   #3B1F2B;
+      --positive:      #7FCB9F;
+      --positive-wash: #1E322A;
+      --warm:          #F0A567;
+      --warm-wash:     #3A2A1C;
+      --shadow:        0 1px 2px rgba(0,0,0,.2), 0 8px 28px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:            #1B141F;
+    --surface:       #251C29;
+    --surface-2:     #2C2130;
+    --ink:           #F4EAF1;
+    --ink-muted:     #B7A2B3;
+    --ink-faint:     #7C6979;
+    --border:        #3B2C3D;
+    --accent:        #FF7699;
+    --accent-strong: #FF95B0;
+    --accent-wash:   #3B1F2B;
+    --positive:      #7FCB9F;
+    --positive-wash: #1E322A;
+    --warm:          #F0A567;
+    --warm-wash:     #3A2A1C;
+    --shadow:        0 1px 2px rgba(0,0,0,.2), 0 8px 28px -14px rgba(0,0,0,.6);
+  }
+
+  *{ box-sizing:border-box; }
+  html{ color-scheme: light dark; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Karla', ui-sans-serif, system-ui, sans-serif;
+    font-size:16px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Fraunces', Georgia, serif; margin:0; text-wrap:balance; }
+  .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+  a{ color:inherit; }
+  button{ font-family:inherit; }
+  ::selection{ background:var(--accent-wash); color:var(--accent-strong); }
+
+  .shell{ max-width:720px; margin:0 auto; padding:20px 18px 64px; }
+
+  /* ── Top bar ─────────────────────────────────────────────────────── */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:6px 2px 22px;
+  }
+  .wordmark{ display:flex; align-items:center; gap:9px; }
+  .wordmark svg{ width:22px; height:26px; flex:none; }
+  .wordmark-text{ display:flex; flex-direction:column; line-height:1.15; }
+  .wordmark-text b{ font-family:'Fraunces', serif; font-weight:600; font-size:1.05rem; }
+  .wordmark-text span{ font-size:.72rem; color:var(--ink-muted); letter-spacing:.02em; }
+
+  .topbar-controls{ display:flex; align-items:center; gap:8px; }
+  .icon-btn{
+    display:flex; align-items:center; justify-content:center;
+    width:34px; height:34px; border-radius:999px; border:1px solid var(--border);
+    background:var(--surface); color:var(--ink-muted); cursor:pointer;
+  }
+  .icon-btn:hover{ color:var(--ink); border-color:var(--ink-faint); }
+  .icon-btn svg{ width:16px; height:16px; }
+
+  .player-pill{
+    display:flex; align-items:center; gap:7px;
+    padding:6px 12px 6px 7px; border-radius:999px;
+    border:1px solid var(--border); background:var(--surface);
+    cursor:pointer; font-size:.86rem; font-weight:600; color:var(--ink);
+  }
+  .player-pill:hover{ border-color:var(--ink-faint); }
+  .avatar{
+    width:22px; height:22px; border-radius:999px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.68rem; font-weight:700; color:#fff; background:var(--accent);
+  }
+
+  /* ── Hero / scoreboard ───────────────────────────────────────────── */
+  .hero{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow);
+    padding:30px 26px 26px; text-align:center; margin-bottom:16px;
+  }
+  .hero-eyebrow{
+    font-size:.72rem; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--ink-muted); font-weight:600; margin-bottom:6px;
+  }
+  .hero-number{
+    font-family:'Fraunces', serif; font-style:italic; font-weight:600;
+    font-size:clamp(4rem, 18vw, 6rem); line-height:.95; color:var(--warm);
+    font-variant-numeric:tabular-nums;
+  }
+  .hero-label{ font-size:1rem; color:var(--ink-muted); margin-top:2px; }
+  .hero-sub{ font-size:.82rem; color:var(--ink-faint); margin-top:10px; }
+  .hero-sub b{ color:var(--ink-muted); font-weight:600; }
+
+  .rollcall{
+    display:flex; flex-wrap:wrap; gap:14px; justify-content:center;
+    margin-top:22px; padding-top:20px; border-top:1px dashed var(--border);
+  }
+  .rc-player{ display:flex; flex-direction:column; align-items:center; gap:6px; width:64px; }
+  .rc-ring{
+    width:52px; height:52px; border-radius:999px; position:relative;
+    display:flex; align-items:center; justify-content:center;
+    border:2.5px solid var(--border); background:var(--surface-2);
+  }
+  .rc-ring.done{ border-color:var(--positive); background:var(--positive-wash); }
+  .rc-ring.partial{ border-color:var(--warm); border-style:dashed; }
+  .rc-ring .rc-initials{ font-family:'Fraunces', serif; font-weight:600; font-size:1rem; color:var(--ink); }
+  .rc-ring.done .rc-initials{ color:var(--positive); }
+  .rc-ring .rc-check{ position:absolute; bottom:-3px; right:-3px; width:18px; height:18px; border-radius:999px; background:var(--positive); color:#fff; display:flex; align-items:center; justify-content:center; border:2px solid var(--surface); }
+  .rc-ring .rc-check svg{ width:10px; height:10px; }
+  .rc-name{ font-size:.74rem; color:var(--ink-muted); text-align:center; max-width:64px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rc-steps{ font-size:.68rem; color:var(--ink-faint); }
+
+  /* ── Card grid ───────────────────────────────────────────────────── */
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+  @media (max-width:620px){ .grid{ grid-template-columns:1fr; } }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:22px;
+  }
+  .card h2{ font-size:1.08rem; font-weight:600; margin-bottom:4px; }
+  .card .card-sub{ font-size:.82rem; color:var(--ink-muted); margin-bottom:16px; }
+
+  /* Log form */
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:.78rem; font-weight:600; color:var(--ink-muted); margin-bottom:6px; }
+  select, input[type="number"]{
+    width:100%; padding:11px 12px; border-radius:var(--radius-sm);
+    border:1px solid var(--border); background:var(--surface-2); color:var(--ink);
+    font-family:inherit; font-size:.95rem; appearance:none;
+  }
+  input[type="number"]{ font-family:'IBM Plex Mono', monospace; font-variant-numeric:tabular-nums; }
+  select:focus, input:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
+
+  .day-toggle{ display:flex; gap:8px; }
+  .day-toggle button{
+    flex:1; padding:9px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink-muted); font-size:.82rem; font-weight:600; cursor:pointer;
+  }
+  .day-toggle button.active{ background:var(--accent-wash); border-color:var(--accent); color:var(--accent-strong); }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    width:100%; padding:12px; border-radius:var(--radius-sm); border:none;
+    background:var(--accent); color:#fff; font-weight:700; font-size:.94rem;
+    cursor:pointer; margin-top:4px;
+  }
+  .btn:hover{ background:var(--accent-strong); }
+  .btn:disabled{ opacity:.55; cursor:default; }
+  .btn.ghost{ background:transparent; color:var(--ink-muted); border:1px solid var(--border); font-weight:600; }
+  .btn.ghost:hover{ color:var(--ink); border-color:var(--ink-faint); background:transparent; }
+
+  .form-msg{ font-size:.8rem; margin-top:10px; min-height:1em; }
+  .form-msg.ok{ color:var(--positive); }
+  .form-msg.err{ color:var(--accent-strong); }
+
+  /* Ledger */
+  .ledger-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:10px 0; border-top:1px solid var(--border);
+  }
+  .ledger-row:first-of-type{ border-top:none; }
+  .ledger-name{ display:flex; align-items:center; gap:9px; font-weight:600; font-size:.92rem; }
+  .ledger-cones{ display:flex; align-items:center; gap:5px; color:var(--warm); }
+  .ledger-cones svg{ width:15px; height:17px; }
+  .ledger-count{ font-family:'IBM Plex Mono', monospace; font-size:.8rem; color:var(--ink-muted); }
+  .ledger-empty{ font-size:.86rem; color:var(--ink-muted); padding:6px 0 2px; }
+
+  /* History */
+  .history-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:22px; margin-bottom:16px; }
+  .history-row{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:11px 0; border-top:1px solid var(--border); }
+  .history-row:first-of-type{ border-top:none; }
+  .history-round{ font-family:'Fraunces', serif; font-weight:600; font-size:.98rem; }
+  .history-detail{ font-size:.78rem; color:var(--ink-muted); text-align:right; }
+  .history-empty{ font-size:.86rem; color:var(--ink-muted); }
+
+  /* Setup / footer */
+  details.setup{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:4px 22px; margin-bottom:28px; }
+  details.setup summary{ cursor:pointer; padding:16px 0; font-weight:700; font-size:.92rem; list-style:none; display:flex; align-items:center; justify-content:space-between; }
+  details.setup summary::-webkit-details-marker{ display:none; }
+  details.setup summary .chev{ transition:transform .15s ease; color:var(--ink-muted); }
+  details.setup[open] summary .chev{ transform:rotate(90deg); }
+  .setup-body{ padding-bottom:20px; font-size:.88rem; color:var(--ink-muted); }
+  .setup-body h4{ font-family:'Karla',sans-serif; font-size:.82rem; font-weight:700; color:var(--ink); margin:16px 0 6px; }
+  .setup-body ol, .setup-body ul{ padding-left:1.15em; margin:0 0 10px; }
+  .setup-body li{ margin-bottom:5px; }
+  .codeblock{
+    background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:11px 12px; font-family:'IBM Plex Mono', monospace; font-size:.76rem; color:var(--ink);
+    overflow-x:auto; white-space:pre; margin:8px 0;
+  }
+  .copy-row{ display:flex; align-items:center; gap:8px; }
+  .copy-row .codeblock{ flex:1; margin:8px 0; }
+  .copy-btn{ flex:none; padding:9px 12px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface-2); color:var(--ink-muted); font-size:.76rem; font-weight:600; cursor:pointer; }
+  .copy-btn:hover{ color:var(--ink); border-color:var(--ink-faint); }
+
+  footer{ text-align:center; font-size:.76rem; color:var(--ink-faint); padding-top:8px; }
+
+  /* Onboarding */
+  .onboard{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); padding:28px; text-align:center; }
+  .onboard svg{ width:34px; height:40px; margin-bottom:10px; }
+  .onboard p{ color:var(--ink-muted); font-size:.9rem; max-width:36em; margin:6px auto 18px; }
+  .onboard .field{ text-align:left; }
+
+  /* Modal (switch player) */
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(20,12,18,.42); display:flex; align-items:flex-end; justify-content:center; z-index:50; padding:0; }
+  @media (min-width:520px){ .modal-backdrop{ align-items:center; } }
+  .modal{ background:var(--surface); border:1px solid var(--border); width:100%; max-width:420px; border-radius:20px 20px 0 0; padding:22px; box-shadow:var(--shadow); max-height:80vh; overflow:auto; }
+  @media (min-width:520px){ .modal{ border-radius:var(--radius-lg); } }
+  .modal h3{ font-size:1.02rem; margin-bottom:14px; }
+  .modal-list{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+  .modal-item{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:var(--radius-sm); cursor:pointer; border:1px solid transparent; }
+  .modal-item:hover{ background:var(--surface-2); }
+  .modal-item.current{ border-color:var(--accent); background:var(--accent-wash); }
+  .modal-item .avatar{ width:28px; height:28px; font-size:.76rem; }
+  .modal-close{ display:flex; justify-content:flex-end; margin-bottom:4px; }
+
+  .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  [hidden]{ display:none !important; }
+
+  @media (prefers-reduced-motion: no-preference){
+    .hero-number{ transition: color .3s ease; }
+    .rc-ring{ transition: border-color .2s ease, background-color .2s ease; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <div class="topbar">
+    <div class="wordmark">
+      <svg viewBox="0 0 24 28" aria-hidden="true"><path d="M6.4 10 L12 26.5 L17.6 10 Z" fill="var(--warm)"/><circle cx="12" cy="8" r="6.2" fill="var(--accent)" stroke="var(--surface)" stroke-width="0.9"/></svg>
+      <div class="wordmark-text"><b>10k Everyday</b><span>let's keep the streak going</span></div>
+    </div>
+    <div class="topbar-controls">
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Vaheta värviteemat" title="Vaheta teemat">
+        <svg id="theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+      </button>
+      <button class="player-pill" id="player-pill" type="button" hidden>
+        <span class="avatar" id="pill-avatar"></span>
+        <span id="pill-name"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Onboarding: only shown before anyone has joined -->
+  <div class="onboard" id="onboard" hidden>
+    <svg viewBox="0 0 24 28" aria-hidden="true"><path d="M6.4 10 L12 26.5 L17.6 10 Z" fill="var(--warm)"/><circle cx="12" cy="8" r="6.2" fill="var(--accent)" stroke="var(--surface)" stroke-width="0.9"/></svg>
+    <h1>Kes on mängus?</h1>
+    <p>Lisa kõik grupi liikmed. Striik algab täna ja jätkub seni, kuni absoluutselt igaüks teeb iga päev vähemalt 10 000 sammu. Esimene, kes selle vahele jätab, ostab kõigile jäätise — ja striik algab uuesti nullist.</p>
+    <div class="field">
+      <label for="onboard-name">Sinu nimi</label>
+      <input type="text" id="onboard-name" placeholder="nt Elina" autocomplete="off" />
+    </div>
+    <button class="btn" id="onboard-add">Alusta striiki</button>
+    <div class="form-msg" id="onboard-msg"></div>
+  </div>
+
+  <!-- Main app: hidden until at least one player exists -->
+  <div id="app" hidden>
+
+    <div class="hero">
+      <div class="hero-eyebrow" id="hero-eyebrow">Praegune striik</div>
+      <div class="hero-number" id="hero-number">0</div>
+      <div class="hero-label" id="hero-label">päeva ja loeme edasi</div>
+      <div class="hero-sub" id="hero-sub"></div>
+
+      <div class="rollcall" id="rollcall"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Logi tänased sammud</h2>
+        <div class="card-sub" id="log-sub">Käsitsi sisestamine — või seadista allpool automaatne logimine.</div>
+
+        <div class="field">
+          <label for="log-player">Kelle jaoks logid</label>
+          <select id="log-player"></select>
+        </div>
+
+        <div class="field">
+          <label>Päev</label>
+          <div class="day-toggle">
+            <button type="button" class="active" data-offset="0">Täna</button>
+            <button type="button" data-offset="-1">Eile</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="log-steps">Sammud</label>
+          <input type="number" id="log-steps" min="0" step="1" placeholder="nt 10842" />
+        </div>
+
+        <button class="btn" id="log-submit">Logi sammud</button>
+        <div class="form-msg" id="log-msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Jäätisevõlad</h2>
+        <div class="card-sub">Kes on jäätise võlgu.</div>
+        <div id="ledger"></div>
+      </div>
+    </div>
+
+    <div class="history-card">
+      <h2>Voorude ajalugu</h2>
+      <div id="history" style="margin-top:12px;"></div>
+    </div>
+
+    <details class="setup" id="setup-details">
+      <summary>
+        <span>Seadista automaatne logimine Apple Healthist</span>
+        <svg class="chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>
+      </summary>
+      <div class="setup-body">
+        <p>See saadab su sammude arvu otse Terviseäpist tulemustabelisse — pole vaja seda lehte avadagi. Töötab tasuta iOS-i otsetee (Shortcut) kaudu, vaikselt, kord päevas.</p>
+
+        <h4>1 · Loo otsetee</h4>
+        <ol>
+          <li>Ava rakendus <b>Otseteed</b> (Shortcuts) → puuduta <b>＋</b>, et luua uus otsetee.</li>
+          <li>Lisa toiming <b>Find Health Samples</b> → tüüp <b>Steps</b>, sorteeri alguskuupäeva järgi, filtreeri <b>Start Date is Today</b>.</li>
+          <li>Lisa toiming <b>Calculate Statistics</b> → statistik <b>Sum</b>, eelmise sammu terviseandmete põhjal.</li>
+          <li>Lisa toiming <b>Get Contents of URL</b>, seadistades selle allpool oleva järgi.</li>
+        </ol>
+
+        <h4>2 · Get Contents of URL seaded</h4>
+        <p>URL:</p>
+        <div class="codeblock" id="setup-url">…</div>
+        <p>Meetod: <b>POST</b>. Päised (Headers):</p>
+        <div class="codeblock" id="setup-headers">…</div>
+        <p>Request Body → <b>JSON</b>:</p>
+        <div class="codeblock" id="setup-body">…</div>
+        <p style="font-size:.78rem;">(<code>Statistic</code> on muutuja 3. sammust — vali see muutujate valikust, ära kirjuta käsitsi.)</p>
+
+        <h4>3 · Käivita see iga õhtu automaatselt</h4>
+        <ol>
+          <li>Ava Otseteedes <b>Automation</b> → <b>＋</b> → <b>Create Personal Automation</b> → <b>Time of Day</b> (nt kell 21:00, iga päev).</li>
+          <li>Lisa toiming <b>Run Shortcut</b> → vali äsja loodud otsetee.</li>
+          <li>Lülita välja <b>Ask Before Running</b>, et see töötaks vaikselt.</li>
+        </ol>
+
+        <h4>Eelistad Health Auto Exporti?</h4>
+        <p>Kui kasutad juba (tasulist) Health Auto Export äppi, saab see samamoodi omal ajakaval andmeid saata: Automations → REST API → kleebi ülalolev URL, meetod POST, lisa samad kaks päist ning seo väli <code>steps</code> tänase sammude summaga.</p>
+
+        <h4>Tahad lihtsalt käsitsi sisestada?</h4>
+        <p>Selleks ongi ülalolev vorm — seadistamist pole vaja, sobib kõigile.</p>
+      </div>
+    </details>
+
+    <footer>Eeldab, et kõik on enam-vähem samas ajavööndis, nii et „täna“ tähendab kogu grupi jaoks sama päeva.</footer>
+  </div>
+
+</div>
+
+<!-- Switch / add player modal -->
+<div class="modal-backdrop" id="modal-backdrop" hidden>
+  <div class="modal">
+    <div class="modal-close"><button class="icon-btn" id="modal-close" aria-label="Sulge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"></path></svg></button></div>
+    <h3>Kes sa oled?</h3>
+    <div class="modal-list" id="modal-list"></div>
+    <div class="field">
+      <label for="modal-new-name">Lisa uus mängija</label>
+      <input type="text" id="modal-new-name" placeholder="Tema nimi" autocomplete="off" />
+    </div>
+    <button class="btn ghost" id="modal-add">Lisa mängija</button>
+    <div class="form-msg" id="modal-msg"></div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   CONFIG — edit these two lines with your own Supabase project's
+   values (Project Settings → API). The anon key is a public, safe-to-
+   expose key — the whole point of it is to sit inside client code
+   like this one.
+════════════════════════════════════════════════════════════════════ */
+const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+
+const GOAL = 10000;
+
+/* ──────────────────────────────────────────────────────────────────
+   Setup
+────────────────────────────────────────────────────────────────── */
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $ = (sel) => document.querySelector(sel);
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k === "html") n.innerHTML = v;
+    else if (k.startsWith("on") && typeof v === "function") n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const kid of kids) n.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  return n;
+};
+
+function slugify(name) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "player";
+}
+function initials(name) {
+  return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() || "").join("") || "?";
+}
+function pad(n) { return String(n).padStart(2, "0"); }
+function isoOf(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function todayISO() { return isoOf(new Date()); }
+function addDaysISO(iso, n) {
+  const d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + n);
+  return isoOf(d);
+}
+function diffDaysISO(a, b) { // a - b, in whole days
+  return Math.round((new Date(a + "T00:00:00") - new Date(b + "T00:00:00")) / 86400000);
+}
+function humanDate(iso) {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("et-EE", { month: "short", day: "numeric" });
+}
+function fmt(n) { return n.toLocaleString(); }
+
+const coneSVG = `<svg viewBox="0 0 24 28" aria-hidden="true"><circle cx="12" cy="8" r="6.2" fill="currentColor" opacity=".9"/><path d="M6.4 10 L12 26.5 L17.6 10 Z" fill="currentColor"/></svg>`;
+const checkSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>`;
+
+/* ──────────────────────────────────────────────────────────────────
+   Theme toggle (light / dark / system), persisted per-browser
+────────────────────────────────────────────────────────────────── */
+(function initTheme() {
+  const stored = localStorage.getItem("tenk_theme"); // "light" | "dark" | null
+  if (stored) document.documentElement.dataset.theme = stored;
+  $("#theme-toggle").addEventListener("click", () => {
+    const order = [undefined, "dark", "light"];
+    const cur = document.documentElement.dataset.theme;
+    const next = order[(order.indexOf(cur === "" ? undefined : cur) + 1) % order.length];
+    if (next) { document.documentElement.dataset.theme = next; localStorage.setItem("tenk_theme", next); }
+    else { delete document.documentElement.dataset.theme; localStorage.removeItem("tenk_theme"); }
+  });
+})();
+
+/* ──────────────────────────────────────────────────────────────────
+   State
+────────────────────────────────────────────────────────────────── */
+let players = [];         // [{id, name, joined_at}]
+let roundState = null;    // {round_number, start_date}
+let roundHistory = [];    // [{round_number, start_date, end_date, length_days, broken_by}]
+let logsByKey = {};        // "playerId_date" -> steps  (covers current round span + today)
+let currentPlayerId = localStorage.getItem("tenk_player_id") || null;
+
+function setCurrentPlayer(id) {
+  currentPlayerId = id;
+  localStorage.setItem("tenk_player_id", id);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Data loading
+────────────────────────────────────────────────────────────────── */
+async function loadPlayers() {
+  const { data, error } = await sb.from("players").select("*").order("joined_at", { ascending: true });
+  if (error) throw error;
+  players = data || [];
+}
+
+async function ensureRoundState() {
+  const { data } = await sb.from("round_state").select("*").eq("id", 1).maybeSingle();
+  if (data) { roundState = data; return; }
+  const fresh = { id: 1, round_number: 1, start_date: todayISO() };
+  await sb.from("round_state").upsert(fresh);
+  roundState = fresh;
+}
+
+async function loadRoundHistory() {
+  const { data, error } = await sb.from("round_history").select("*").order("round_number", { ascending: false });
+  if (error) throw error;
+  roundHistory = data || [];
+}
+
+async function loadLogsRange(startISO, endISO) {
+  if (diffDaysISO(endISO, startISO) < 0) { logsByKey = {}; return; }
+  const { data, error } = await sb.from("logs").select("*").gte("log_date", startISO).lte("log_date", endISO);
+  if (error) throw error;
+  logsByKey = {};
+  for (const row of (data || [])) logsByKey[`${row.player_id}_${row.log_date}`] = row.steps;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Round rollover — deterministic & idempotent, so it's safe for
+   whichever friend's phone happens to load the page first each day
+   to be the one that "advances the clock".
+────────────────────────────────────────────────────────────────── */
+async function rollForwardRound() {
+  const yesterday = addDaysISO(todayISO(), -1);
+  if (diffDaysISO(yesterday, roundState.start_date) < 0) return; // round starts today or later — nothing to check yet
+
+  await loadLogsRange(roundState.start_date, yesterday);
+
+  let startDate = roundState.start_date;
+  let roundNumber = roundState.round_number;
+  const newHistory = [];
+  let date = startDate;
+
+  while (diffDaysISO(date, yesterday) <= 0) {
+    const active = players.filter(p => diffDaysISO(date, p.joined_at) >= 0);
+    if (active.length > 0) {
+      const missed = active.filter(p => !(logsByKey[`${p.id}_${date}`] >= GOAL));
+      if (missed.length > 0) {
+        newHistory.push({
+          round_number: roundNumber,
+          start_date: startDate,
+          end_date: date,
+          length_days: diffDaysISO(date, startDate),
+          broken_by: missed.map(p => p.name),
+        });
+        roundNumber += 1;
+        startDate = addDaysISO(date, 1);
+        date = startDate;
+        continue;
+      }
+    }
+    date = addDaysISO(date, 1);
+  }
+
+  if (newHistory.length > 0) {
+    await sb.from("round_history").upsert(newHistory, { onConflict: "round_number", ignoreDuplicates: true });
+    roundState = { id: 1, round_number: roundNumber, start_date: startDate };
+    await sb.from("round_state").upsert(roundState);
+    await loadRoundHistory();
+  }
+
+  // refresh the log window to cover the (possibly new) current round through today
+  await loadLogsRange(roundState.start_date, todayISO());
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Rendering
+────────────────────────────────────────────────────────────────── */
+function render() {
+  const today = todayISO();
+  const active = players.filter(p => diffDaysISO(today, p.joined_at) >= 0);
+  const streakDays = diffDaysISO(today, roundState.start_date);
+
+  $("#hero-number").textContent = fmt(Math.max(streakDays, 0));
+  $("#hero-label").textContent = streakDays === 1 ? "päev ja loeme edasi" : "päeva ja loeme edasi";
+  $("#hero-eyebrow").textContent = streakDays === 0 ? "Uus algus" : "Praegune striik";
+  $("#hero-sub").innerHTML = streakDays === 0
+    ? `<b>${roundState.round_number}.</b> voor just algas — täna teevad kõik 10 000 sammu, et striik käima saada.`
+    : `<b>${roundState.round_number}.</b> voor · algas ${humanDate(roundState.start_date)}`;
+
+  // roll call
+  const rc = $("#rollcall");
+  rc.innerHTML = "";
+  for (const p of active) {
+    const steps = logsByKey[`${p.id}_${today}`] || 0;
+    const done = steps >= GOAL;
+    const partial = steps > 0 && !done;
+    const ring = el("div", { class: `rc-ring ${done ? "done" : partial ? "partial" : ""}` },
+      el("span", { class: "rc-initials" }, initials(p.name))
+    );
+    if (done) ring.append(el("span", { class: "rc-check", html: checkSVG }));
+    rc.append(el("div", { class: "rc-player" },
+      ring,
+      el("div", { class: "rc-name" }, p.name),
+      el("div", { class: "rc-steps" }, done ? "10k+ ✓" : steps > 0 ? `${fmt(steps)}` : "pole veel logitud")
+    ));
+  }
+
+  // player switcher pill
+  const me = players.find(p => p.id === currentPlayerId);
+  if (me) {
+    $("#player-pill").hidden = false;
+    $("#pill-name").textContent = me.name;
+    $("#pill-avatar").textContent = initials(me.name);
+  } else {
+    $("#player-pill").hidden = players.length === 0;
+  }
+
+  // log form
+  const sel = $("#log-player");
+  sel.innerHTML = "";
+  for (const p of players) sel.append(el("option", { value: p.id }, p.name));
+  if (currentPlayerId && players.some(p => p.id === currentPlayerId)) sel.value = currentPlayerId;
+
+  // ledger
+  const debts = {};
+  for (const r of roundHistory) for (const name of r.broken_by) debts[name] = (debts[name] || 0) + 1;
+  const ledgerEl = $("#ledger");
+  ledgerEl.innerHTML = "";
+  const names = Object.keys(debts).sort((a, b) => debts[b] - debts[a]);
+  if (names.length === 0) {
+    ledgerEl.append(el("div", { class: "ledger-empty" }, "Keegi pole veel striiki katki teinud — arve on puhas."));
+  } else {
+    for (const name of names) {
+      ledgerEl.append(el("div", { class: "ledger-row" },
+        el("div", { class: "ledger-name" },
+          el("span", { class: "avatar", style: "background:var(--warm)" }, initials(name)),
+          name
+        ),
+        el("div", { class: "ledger-cones" },
+          el("span", { html: coneSVG }),
+          el("span", { class: "ledger-count" }, `× ${debts[name]}`)
+        )
+      ));
+    }
+  }
+
+  // history
+  const histEl = $("#history");
+  histEl.innerHTML = "";
+  if (roundHistory.length === 0) {
+    histEl.append(el("div", { class: "history-empty" }, "See on esimene voor — ajalugu veel puudub."));
+  } else {
+    for (const r of roundHistory) {
+      histEl.append(el("div", { class: "history-row" },
+        el("div", {},
+          el("div", { class: "history-round" }, `${r.round_number}. voor`),
+          el("div", { class: "history-detail" }, `${humanDate(r.start_date)} – ${humanDate(r.end_date)}`)
+        ),
+        el("div", { class: "history-detail" },
+          `${r.length_days} ${r.length_days === 1 ? "päev" : "päeva"} · katkes: ${r.broken_by.join(", ")}`
+        )
+      ));
+    }
+  }
+
+  renderSetupPanel();
+}
+
+function renderSetupPanel() {
+  const me = players.find(p => p.id === currentPlayerId) || players[0];
+  if (!me) return;
+  const base = location.origin + location.pathname.replace(/index\.html$/, "");
+  $("#setup-url").textContent = `${SUPABASE_URL}/rest/v1/logs`;
+  $("#setup-headers").textContent =
+    `apikey: ${SUPABASE_ANON_KEY}\nAuthorization: Bearer ${SUPABASE_ANON_KEY}\nContent-Type: application/json\nPrefer: resolution=merge-duplicates`;
+  $("#setup-body").textContent =
+`{
+  "id": "${me.id}_[Current Date, ISO 8601, short]",
+  "player_id": "${me.id}",
+  "log_date": "[Current Date, ISO 8601, short]",
+  "steps": [Statistic]
+}`;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Modal — switch / add player
+────────────────────────────────────────────────────────────────── */
+function openModal() {
+  const list = $("#modal-list");
+  list.innerHTML = "";
+  for (const p of players) {
+    const item = el("div", { class: `modal-item ${p.id === currentPlayerId ? "current" : ""}` },
+      el("span", { class: "avatar" }, initials(p.name)),
+      el("span", {}, p.name)
+    );
+    item.addEventListener("click", () => { setCurrentPlayer(p.id); closeModal(); render(); });
+    list.append(item);
+  }
+  $("#modal-msg").textContent = "";
+  $("#modal-new-name").value = "";
+  $("#modal-backdrop").hidden = false;
+}
+function closeModal() { $("#modal-backdrop").hidden = true; }
+
+$("#player-pill").addEventListener("click", openModal);
+$("#modal-close").addEventListener("click", closeModal);
+$("#modal-backdrop").addEventListener("click", (e) => { if (e.target.id === "modal-backdrop") closeModal(); });
+
+$("#modal-add").addEventListener("click", async () => {
+  const name = $("#modal-new-name").value.trim();
+  const msg = $("#modal-msg");
+  if (!name) { msg.textContent = "Anna neile enne nimi."; msg.className = "form-msg err"; return; }
+  let id = slugify(name);
+  if (players.some(p => p.id === id)) id = `${id}-${Math.random().toString(36).slice(2, 5)}`;
+  const { error } = await sb.from("players").insert({ id, name, joined_at: todayISO() });
+  if (error) { msg.textContent = "Lisamine ebaõnnestus — proovi uuesti."; msg.className = "form-msg err"; return; }
+  await loadPlayers();
+  setCurrentPlayer(id);
+  closeModal();
+  render();
+});
+
+/* ──────────────────────────────────────────────────────────────────
+   Onboarding (first player ever)
+────────────────────────────────────────────────────────────────── */
+$("#onboard-add").addEventListener("click", async () => {
+  const name = $("#onboard-name").value.trim();
+  const msg = $("#onboard-msg");
+  if (!name) { msg.textContent = "Alustamiseks sisesta oma nimi."; msg.className = "form-msg err"; return; }
+  const id = slugify(name);
+  const { error } = await sb.from("players").insert({ id, name, joined_at: todayISO() });
+  if (error) { msg.textContent = "Midagi läks valesti — proovi uuesti."; msg.className = "form-msg err"; return; }
+  await loadPlayers();
+  await ensureRoundState();
+  setCurrentPlayer(id);
+  await boot(true);
+});
+
+/* ──────────────────────────────────────────────────────────────────
+   Log form
+────────────────────────────────────────────────────────────────── */
+let logDayOffset = 0;
+document.querySelectorAll(".day-toggle button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".day-toggle button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    logDayOffset = Number(btn.dataset.offset);
+  });
+});
+
+$("#log-submit").addEventListener("click", async () => {
+  const playerId = $("#log-player").value;
+  const steps = Number($("#log-steps").value);
+  const msg = $("#log-msg");
+  if (!playerId) { msg.textContent = "Vali, kelle jaoks see on."; msg.className = "form-msg err"; return; }
+  if (!Number.isFinite(steps) || steps < 0) { msg.textContent = "Sisesta sammude arv."; msg.className = "form-msg err"; return; }
+
+  const date = addDaysISO(todayISO(), logDayOffset);
+  const id = `${playerId}_${date}`;
+  const { error } = await sb.from("logs").upsert({ id, player_id: playerId, log_date: date, steps });
+  if (error) { msg.textContent = "Salvestamine ebaõnnestus — proovi uuesti."; msg.className = "form-msg err"; return; }
+
+  setCurrentPlayer(playerId);
+  msg.textContent = steps >= GOAL ? `Logitud — ${fmt(steps)} sammu. Tubli!` : `Logitud ${fmt(steps)} sammu.`;
+  msg.className = "form-msg ok";
+  $("#log-steps").value = "";
+  await refreshAndRender();
+});
+
+/* ──────────────────────────────────────────────────────────────────
+   Boot & realtime
+────────────────────────────────────────────────────────────────── */
+async function refreshAndRender() {
+  await loadPlayers();
+  await ensureRoundState();
+  await rollForwardRound();
+  await loadRoundHistory();
+  render();
+}
+
+let subscribed = false;
+function subscribeRealtime() {
+  if (subscribed) return;
+  subscribed = true;
+  sb.channel("tenk-everyday")
+    .on("postgres_changes", { event: "*", schema: "public", table: "logs" }, () => refreshAndRender())
+    .on("postgres_changes", { event: "*", schema: "public", table: "players" }, () => refreshAndRender())
+    .on("postgres_changes", { event: "*", schema: "public", table: "round_state" }, () => refreshAndRender())
+    .on("postgres_changes", { event: "*", schema: "public", table: "round_history" }, () => refreshAndRender())
+    .subscribe();
+}
+
+async function boot() {
+  try {
+    await loadPlayers();
+  } catch (e) {
+    console.error(e);
+    $("#onboard").hidden = false;
+    $("#onboard-msg").textContent = "Andmebaasiga ei saanud ühendust — kontrolli index.html failis Supabase URL-i ja võtit.";
+    $("#onboard-msg").className = "form-msg err";
+    return;
+  }
+
+  if (players.length === 0) {
+    $("#onboard").hidden = false;
+    $("#app").hidden = true;
+    return;
+  }
+
+  $("#onboard").hidden = true;
+  $("#app").hidden = false;
+
+  await ensureRoundState();
+  await rollForwardRound();
+  await loadRoundHistory();
+  render();
+  subscribeRealtime();
+}
+
+boot();
+</script>
+</body>
+</html>
