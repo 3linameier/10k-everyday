@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>10k Everyday</title>
-<meta name="description" content="Jagatud sammustriik sinu ja su sõprade vahel — kui kellelgi jääb 10 000 sammu ühel päeval saamata, ootab teda jäätise ostmine." />
+<title>10K Iga Päev</title>
+<meta name="description" content="Jagatud sammuseeria sinu ja su sõprade vahel — kui kellelgi jääb 10 000 sammu ühel päeval saamata, ootab teda jäätise ostmine." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 28'%3E%3Ccircle cx='12' cy='8' r='6.2' fill='%23D6436F'/%3E%3Cpath d='M6.4 10 L12 26.5 L17.6 10 Z' fill='%23E8935C'/%3E%3C/svg%3E" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -288,7 +288,7 @@
   <div class="topbar">
     <div class="wordmark">
       <svg viewBox="0 0 24 28" aria-hidden="true"><path d="M6.4 10 L12 26.5 L17.6 10 Z" fill="var(--warm)"/><circle cx="12" cy="8" r="6.2" fill="var(--accent)" stroke="var(--surface)" stroke-width="0.9"/></svg>
-      <div class="wordmark-text"><b>10k Everyday</b><span>let's keep the streak going</span></div>
+      <div class="wordmark-text"><b>10K Iga Päev</b><span>seeria, mis hoiab pundi koos</span></div>
     </div>
     <div class="topbar-controls">
       <button class="icon-btn" id="theme-toggle" type="button" aria-label="Vaheta värviteemat" title="Vaheta teemat">
@@ -305,12 +305,12 @@
   <div class="onboard" id="onboard" hidden>
     <svg viewBox="0 0 24 28" aria-hidden="true"><path d="M6.4 10 L12 26.5 L17.6 10 Z" fill="var(--warm)"/><circle cx="12" cy="8" r="6.2" fill="var(--accent)" stroke="var(--surface)" stroke-width="0.9"/></svg>
     <h1>Kes on mängus?</h1>
-    <p>Lisa kõik grupi liikmed. Striik algab täna ja jätkub seni, kuni absoluutselt igaüks teeb iga päev vähemalt 10 000 sammu. Esimene, kes selle vahele jätab, ostab kõigile jäätise — ja striik algab uuesti nullist.</p>
+    <p>Lisa kõik grupi liikmed. Seeria algab täna ja jätkub seni, kuni absoluutselt igaüks teeb iga päev vähemalt 10 000 sammu. Esimene, kes selle vahele jätab, ostab kõigile jäätise — ja seeria algab uuesti nullist.</p>
     <div class="field">
       <label for="onboard-name">Sinu nimi</label>
       <input type="text" id="onboard-name" placeholder="nt Elina" autocomplete="off" />
     </div>
-    <button class="btn" id="onboard-add">Alusta striiki</button>
+    <button class="btn" id="onboard-add">Alusta seeriat</button>
     <div class="form-msg" id="onboard-msg"></div>
   </div>
 
@@ -318,7 +318,7 @@
   <div id="app" hidden>
 
     <div class="hero">
-      <div class="hero-eyebrow" id="hero-eyebrow">Praegune striik</div>
+      <div class="hero-eyebrow" id="hero-eyebrow">Praegune seeria</div>
       <div class="hero-number" id="hero-number">0</div>
       <div class="hero-label" id="hero-label">päeva ja loeme edasi</div>
       <div class="hero-sub" id="hero-sub"></div>
@@ -428,19 +428,20 @@
 <script>
 /* ════════════════════════════════════════════════════════════════════
    CONFIG — edit these two lines with your own Supabase project's
-   values (Project Settings → API). The anon key is a public, safe-to-
-   expose key — the whole point of it is to sit inside client code
-   like this one.
+   values (Project Settings → API keys). Use the "publishable" key
+   (starts with sb_publishable_...) — it's the modern, public,
+   safe-to-expose key Supabase now issues in place of the old "anon"
+   key. The whole point of it is to sit inside client code like this.
 ════════════════════════════════════════════════════════════════════ */
 const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_YOUR-KEY-HERE";
 
 const GOAL = 10000;
 
 /* ──────────────────────────────────────────────────────────────────
    Setup
 ────────────────────────────────────────────────────────────────── */
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, attrs = {}, ...kids) => {
@@ -599,9 +600,9 @@ function render() {
 
   $("#hero-number").textContent = fmt(Math.max(streakDays, 0));
   $("#hero-label").textContent = streakDays === 1 ? "päev ja loeme edasi" : "päeva ja loeme edasi";
-  $("#hero-eyebrow").textContent = streakDays === 0 ? "Uus algus" : "Praegune striik";
+  $("#hero-eyebrow").textContent = streakDays === 0 ? "Uus algus" : "Praegune seeria";
   $("#hero-sub").innerHTML = streakDays === 0
-    ? `<b>${roundState.round_number}.</b> voor just algas — täna teevad kõik 10 000 sammu, et striik käima saada.`
+    ? `<b>${roundState.round_number}.</b> voor just algas — täna teevad kõik 10 000 sammu, et seeria käima saada.`
     : `<b>${roundState.round_number}.</b> voor · algas ${humanDate(roundState.start_date)}`;
 
   // roll call
@@ -645,7 +646,7 @@ function render() {
   ledgerEl.innerHTML = "";
   const names = Object.keys(debts).sort((a, b) => debts[b] - debts[a]);
   if (names.length === 0) {
-    ledgerEl.append(el("div", { class: "ledger-empty" }, "Keegi pole veel striiki katki teinud — arve on puhas."));
+    ledgerEl.append(el("div", { class: "ledger-empty" }, "Keegi pole veel seeriat katki teinud — arve on puhas."));
   } else {
     for (const name of names) {
       ledgerEl.append(el("div", { class: "ledger-row" },
@@ -689,7 +690,7 @@ function renderSetupPanel() {
   const base = location.origin + location.pathname.replace(/index\.html$/, "");
   $("#setup-url").textContent = `${SUPABASE_URL}/rest/v1/logs`;
   $("#setup-headers").textContent =
-    `apikey: ${SUPABASE_ANON_KEY}\nAuthorization: Bearer ${SUPABASE_ANON_KEY}\nContent-Type: application/json\nPrefer: resolution=merge-duplicates`;
+    `apikey: ${SUPABASE_PUBLISHABLE_KEY}\nContent-Type: application/json\nPrefer: resolution=merge-duplicates`;
   $("#setup-body").textContent =
 `{
   "id": "${me.id}_[Current Date, ISO 8601, short]",

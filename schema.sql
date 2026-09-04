@@ -45,7 +45,7 @@ create table if not exists round_history (
 
 -- ─── Row Level Security ───────────────────────────────────────────────────
 -- This app has no login system — everyone in the group shares one API key
--- (the "anon" key) and works on the honor system, like a shared spreadsheet.
+-- (the publishable key) and works on the honor system, like a shared spreadsheet.
 -- These policies just make that shared read/write access explicit.
 alter table players       enable row level security;
 alter table logs          enable row level security;

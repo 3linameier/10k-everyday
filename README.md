@@ -28,10 +28,12 @@ posts itself from Apple Health every evening, no app-opening required.
    folder, and click **Run**. This creates the four tables the app
    needs (`players`, `logs`, `round_state`, `round_history`) and opens
    them up for your group to read and write.
-4. Open **Project Settings → API**. You'll need two values from this
-   page in the next step:
+4. Open **Project Settings → API keys**. You'll need two values from
+   this page in the next step:
    - **Project URL** (looks like `https://abcdefgh.supabase.co`)
-   - **anon public** key (a long string starting with `eyJ...`)
+   - the **publishable** key (starts with `sb_publishable_...`). Supabase
+     is retiring the old "anon" key in favor of this — if your project
+     still shows both, use publishable; it does the same job.
 
 ## 2 · Point the app at your project
 
@@ -39,13 +41,13 @@ Open `index.html` in any text editor and find this near the top of the
 `<script>` block:
 
 ```js
-const SUPABASE_URL = "https://YOUR-PROJECT-REF.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR-ANON-PUBLIC-KEY";
+const SUPABASE_URL = "https://pqjxftfvziajtuhfnrqh.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_1mFqQOy1tlONFGlJmGK1dw_e1gaYv6x";
 ```
 
 Replace both with the values from step 1.4, and save.
 
-> The anon key is meant to be public — it's designed to sit in
+> The publishable key is meant to be public — it's designed to sit in
 > client-side code like this. What it *doesn't* do is add a login
 > screen: anyone who has your GitHub Pages link can open the board and
 > log steps under any name. For a friend group on the honor system
@@ -117,10 +119,12 @@ in a step count each day works fine too).
    - URL: `https://YOUR-PROJECT-REF.supabase.co/rest/v1/logs`
    - Method: **POST**
    - Headers:
-     - `apikey: YOUR-ANON-PUBLIC-KEY`
-     - `Authorization: Bearer YOUR-ANON-PUBLIC-KEY`
+     - `apikey: sb_publishable_YOUR-KEY-HERE`
      - `Content-Type: application/json`
      - `Prefer: resolution=merge-duplicates`
+   - (No `Authorization` header — the new publishable key isn't a JWT,
+     so it only goes on `apikey`. Adding it as `Authorization: Bearer`
+     as well will get the request rejected.)
    - Request Body → **JSON**:
      ```json
      {
@@ -145,7 +149,7 @@ app any time to see the board update.
 
 **Paid option — Health Auto Export app:** if you already use it, its
 **Automations → REST API** export can POST to the same URL, with the
-same two headers, mapping `steps` to the day's total. More reliable
+same headers above, mapping `steps` to the day's total. More reliable
 than Shortcuts if you want to fully forget about it.
 
 ---
